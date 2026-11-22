@@ -1,0 +1,12 @@
+{
+  "name": "flag-battle-live",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free Render deployment: flag guessing quiz preview and health checks",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
