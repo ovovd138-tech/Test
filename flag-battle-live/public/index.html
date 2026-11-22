@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1224">
+  <title>FLAG BATTLE LIVE · Тестовая викторина</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #f6f9ff; background: #080f1e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 22px 12px 36px; background: radial-gradient(ellipse at top,#243d73 0,#10192f 45%,#080f1e 100%); min-height: 100vh; }
+    main { max-width: 460px; margin: auto; text-align: center; }
+    .pill { display: inline-block; background:#24365e; border:1px solid #435a89; border-radius:99px; padding:7px 12px; font-size:12px; font-weight:800; letter-spacing: .4px; }
+    .demo { color:#f4ce83; margin:14px 0 20px; font-size:12px; line-height:1.4; }
+    h1 {font-size:clamp(25px,6vw,34px);margin:18px 0 4px;line-height:1.1;}
+    .subtitle{color:#afc0e2;font-size:14px;margin:0 0 20px;}
+    .panel { background:rgba(18,30,54,.96); border:1px solid #324665; border-radius:25px; padding:22px 15px; box-shadow:0 14px 50px #0005; }
+    .round {color:#93b5f9;font-size:13px;font-weight:750;letter-spacing:1px;}
+    .flagwrap { background:#101a2c; border:2px solid #536b93; border-radius:16px; overflow:hidden; margin:17px auto 12px; aspect-ratio: 3/2; display:flex;align-items:center;justify-content:center;max-width:360px;}
+    #flag{display:block; width:100%; height:100%; object-fit:contain; }
+    #timer {font-size:35px;color:#66dfae;font-weight:900;font-variant-numeric:tabular-nums;margin:8px;}
+    .track{height:7px;background:#24344d;border-radius:10px;overflow:hidden;margin:2px 12px 19px}
+    #progress{height:100%;background:linear-gradient(90deg,#47e1ae,#80b9ff);transition:width .25s linear}
+    form{display:flex;gap:9px;padding:0 3px}
+    input{min-width:0;flex:1;padding:13px;border:1px solid #5873a0;background:#0e1a30;color:#fff;border-radius:12px;font-size:16px;}
+    button{border:0;background:#ffd166;color:#19223b;padding:12px 16px;font-weight:850;border-radius:12px;cursor:pointer;}
+    #result{min-height:44px; padding-top:14px;line-height:1.4;color:#cfe2ff;font-weight:650;}
+    .stats {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+    .stat{border:1px solid #324665;background:#132443;border-radius:15px;padding:14px}
+    .stat strong {display:block;font-size:25px;color:#fff}
+    .stat span{font-size:12px;color:#a7bbdf}
+    .footer{color:#93a9cf;font-size:12px;margin:20px 0;line-height:1.5}
+    .flag-alt {font-size:12px;color:#93a9cf}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="pill">🌍 FLAG BATTLE LIVE</span>
+    <h1>УГАДАЙ СТРАНУ!</h1>
+    <p class="subtitle">Посмотри на флаг и напиши название</p>
+    <p class="demo">⚠️ ТЕСТОВАЯ ВЕРСИЯ. TikTok LIVE, комментарии и подарки пока не подключены. Это игра в браузере.</p>
+    <section class="panel">
+      <div class="round" id="round">РАУНД 1</div>
+      <div class="flagwrap"><img id="flag" alt="Флаг страны для угадывания" loading="eager"></div>
+      <div class="flag-alt">Какой стране принадлежит этот флаг?</div>
+      <div id="timer">00:20</div>
+      <div class="track"><div id="progress"></div></div>
+      <form id="form" autocomplete="off">
+        <input id="answer" placeholder="Название страны" aria-label="Название страны" maxlength="80" required>
+        <button>Ответить</button>
+      </form>
+      <div id="result" role="status" aria-live="polite">Игра началась!</div>
+    </section>
+    <div class="stats">
+      <div class="stat"><strong id="score">0</strong><span>Правильных ответов</span></div>
+      <div class="stat"><strong id="played">0</strong><span>Завершённых раундов</span></div>
+    </div>
+    <div class="footer">В тесте используется ручной ввод ответов. Счёт сохраняется только на этой странице. Платные услуги не задействованы.</div>
+  </main>
+<script>
+const countries = [
+  ["br","Бразилия","brazil"],["fr","Франция","france"],["jp","Япония","japan"],
+  ["de","Германия","germany"],["it","Италия","italy"],["ca","Канада","canada"],
+  ["us","США","usa","united states","соединенные штаты","америка"],
+  ["gb","Великобритания","united kingdom","британия","англия"],
+  ["es","Испания","spain"],["ar","Аргентина","argentina"],["mx","Мексика","mexico"],
+  ["in","Индия","india"],["cn","Китай","china"],["kr","Южная Корея","south korea","корея"],
+  ["tr","Турция","turkey","türkiye"],["eg","Египет","egypt"],["za","ЮАР","south africa"],
+  ["se","Швеция","sweden"],["no","Норвегия","norway"],["fi","Финляндия","finland"],
+  ["pl","Польша","poland"],["pt","Португалия","portugal"],["ua","Украина","ukraine"],
+  ["ch","Швейцария","switzerland"],["gr","Греция","greece"],
+  ["au","Австралия","australia"],["nz","Новая Зеландия","new zealand"],
+  ["sa","Саудовская Аравия","saudi arabia"],["th","Таиланд","thailand"],
+  ["id","Индонезия","indonesia"],["ru","Россия","russia"]
+];
+const $ = (id) => document.getElementById(id);
+const clean = (s) => s.toLocaleLowerCase("ru").normalize("NFKC")
+    .replace(/ё/g,"е").replace(/[^a-zа-я0-9 ]/g,"").replace(/\s+/g," ").trim();
+const state = {round:0, score:0, played:0, current:null, last:"", left:20, locked:false};
+function nextRound(){
+  let next;
+  do { next = countries[Math.floor(Math.random()*countries.length)]; }
+  while (countries.length>1 && next[0] === state.last);
+  state.current=next;state.last=next[0];state.round++;state.left=20;state.locked=false;
+  $("round").textContent="РАУНД "+state.round;
+  $("flag").src="https://flagcdn.com/w640/"+next[0]+".png";
+  $("flag").alt="Угадай страну по флагу";
+  $("answer").value="";$("answer").disabled=false;
+  $("result").textContent="Успей ответить за 20 секунд!";
+  redraw();
+}
+function redraw(){
+  $("timer").textContent="00:"+String(state.left).padStart(2,"0");
+  $("progress").style.width=(state.left/20*100)+"%";
+  $("score").textContent=state.score;$("played").textContent=state.played;
+}
+function endRound(won){
+  if(state.locked)return;
+  state.locked=true;state.played++;
+  $("answer").disabled=true;
+  if(won){state.score++;$("result").textContent="✅ Верно! Это "+state.current[1]+"!";}
+  else {$("result").textContent="⌛ Время вышло! Правильный ответ: "+state.current[1]+".";}
+  redraw();
+  setTimeout(nextRound,3500);
+}
+$("form").addEventListener("submit",function(e){
+  e.preventDefault();
+  if(state.locked)return;
+  const guess=clean($("answer").value);
+  if(state.current.slice(1).some(v=>clean(v)===guess)){endRound(true);}
+  else {$("result").textContent="❌ Пока неверно. Попробуй ещё!";$("answer").select();}
+});
+setInterval(()=>{if(!state.locked){state.left=Math.max(0,state.left-1);redraw();if(!state.left)endRound(false);}},1000);
+$("flag").onerror=()=>{$("result").textContent="Не удалось загрузить изображение флага. Проверь интернет.";};
+nextRound();
+</script>
+</body>
+</html>
